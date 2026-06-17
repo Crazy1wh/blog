@@ -6,51 +6,99 @@ import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 
-type Props = CollectionEntry<'blog'>['data'];
+type Heading = {
+	depth: number;
+	slug: string;
+	text: string;
+};
 
-const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
+type Props = CollectionEntry<'blog'>['data'] & {
+	headings?: Heading[];
+};
+
+const { title, description, pubDate, updatedDate, heroImage, headings = [] } = Astro.props;
+const outlineHeadings = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
 ---
 
-<html lang="en">
+<html lang="zh-CN">
 	<head>
 		<BaseHead title={title} description={description} />
 		<style>
 			main {
-				width: calc(100% - 2em);
+				width: 100%;
 				max-width: 100%;
-				margin: 0;
+				margin: 0 auto;
+				padding: 0 0 72px;
 			}
 			.hero-image {
-				width: 100%;
+				width: min(100% - 32px, 960px);
+				margin: 34px auto 0;
 			}
 			.hero-image img {
 				display: block;
 				margin: 0 auto;
-				border-radius: 12px;
-				box-shadow: var(--box-shadow);
+				border-radius: 10px;
+				box-shadow: var(--shadow-md);
 			}
 			.prose {
-				width: 720px;
-				max-width: calc(100% - 2em);
-				margin: auto;
-				padding: 1em;
-				color: rgb(var(--gray-dark));
+				width: min(100% - 32px, 860px);
+				margin: 0 auto;
+				padding: 30px 0 0;
 			}
 			.title {
-				margin-bottom: 1em;
-				padding: 1em 0;
-				text-align: center;
-				line-height: 1;
+				margin-bottom: 28px;
+				padding: 10px 0 18px;
 			}
 			.title h1 {
-				margin: 0 0 0.5em 0;
+				margin: 0;
+				font-size: clamp(1.7rem, 3.2vw, 2.25rem);
+				line-height: 1.32;
 			}
 			.date {
-				margin-bottom: 0.5em;
-				color: rgb(var(--gray));
+				margin-bottom: 12px;
+				color: var(--subtle);
+				font-size: 0.94rem;
 			}
 			.last-updated-on {
 				font-style: italic;
+			}
+			.post-actions {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 12px;
+				margin-top: 48px;
+				padding-top: 28px;
+				border-top: 1px solid var(--border);
+			}
+			.post-actions a {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				min-height: 42px;
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 0 16px;
+				background: #fff;
+				color: var(--text);
+				font-size: 0.95rem;
+				font-weight: 700;
+				text-decoration: none;
+			}
+			.post-actions a:hover {
+				border-color: #cbd5e1;
+				background: var(--surface);
+			}
+			@media (max-width: 640px) {
+				.prose {
+					width: min(100% - 28px, 860px);
+					padding-top: 26px;
+				}
+				.hero-image {
+					width: min(100% - 28px, 960px);
+				}
+				.post-actions a {
+					width: 100%;
+				}
 			}
 		</style>
 	</head>
@@ -62,25 +110,80 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 				<div class="hero-image">
 					{heroImage && <Image width={1020} height={510} src={heroImage} alt="" />}
 				</div>
-				<div class="prose">
-					<div class="title">
-						<div class="date">
-							<FormattedDate date={pubDate} />
-							{
-								updatedDate && (
-									<div class="last-updated-on">
-										Last updated on <FormattedDate date={updatedDate} />
-									</div>
-								)
-							}
+				<div class="article-layout">
+					{
+						outlineHeadings.length > 0 && (
+							<aside class="article-toc" aria-label="文章大纲">
+								<p class="article-toc-title">目录</p>
+								<nav>
+									{outlineHeadings.map((heading) => (
+										<div class={`toc-item depth-${heading.depth}`}>
+											<a href={`#${heading.slug}`}>{heading.text}</a>
+										</div>
+									))}
+								</nav>
+							</aside>
+						)
+					}
+					<div class="prose">
+						<div class="title">
+							<div class="date">
+								<FormattedDate date={pubDate} />
+								{
+									updatedDate && (
+										<div class="last-updated-on">
+											Last updated on <FormattedDate date={updatedDate} />
+										</div>
+									)
+								}
+							</div>
+							<h1>{title}</h1>
 						</div>
-						<h1>{title}</h1>
-						<hr />
+						<slot />
+						<div class="post-actions" aria-label="Article links">
+							<a href="/blog">返回文章列表</a>
+							<a href="https://51qdd.com" target="_blank" rel="noopener noreferrer">
+								访问主站 51qdd.com
+							</a>
+						</div>
 					</div>
-					<slot />
 				</div>
 			</article>
 		</main>
 		<Footer />
+		<script>
+			const enhanceCodeBlocks = () => {
+				document.querySelectorAll('.prose pre').forEach((pre) => {
+					if (pre.parentElement?.classList.contains('code-block')) return;
+
+					const wrapper = document.createElement('div');
+					wrapper.className = 'code-block';
+					pre.parentNode?.insertBefore(wrapper, pre);
+					wrapper.appendChild(pre);
+
+					const button = document.createElement('button');
+					button.className = 'copy-code';
+					button.type = 'button';
+					button.textContent = '复制';
+					button.setAttribute('aria-label', '复制代码');
+					wrapper.appendChild(button);
+
+					button.addEventListener('click', async () => {
+						const code = pre.querySelector('code')?.textContent ?? pre.textContent ?? '';
+						try {
+							await navigator.clipboard.writeText(code);
+							button.textContent = '已复制';
+						} catch {
+							button.textContent = '复制失败';
+						}
+						window.setTimeout(() => {
+							button.textContent = '复制';
+						}, 1600);
+					});
+				});
+			};
+
+			enhanceCodeBlocks();
+		</script>
 	</body>
 </html>

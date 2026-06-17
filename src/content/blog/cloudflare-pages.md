@@ -1,3 +1,9 @@
+---
+title: "从 VPS 到 Cloudflare Pages：我的静态网站自动部署流程"
+description: "记录一次将 React/Vite 静态网站从 VPS 和 1Panel 迁移到 GitHub 与 Cloudflare Pages 自动部署的完整过程。"
+pubDate: 2026-06-17
+---
+
 # 从 VPS 到 Cloudflare Pages：我的静态网站自动部署流程记录
 
 这篇文章记录一下我把一个 React/Vite 静态工具站，从传统 VPS + 1Panel 部署，迁移到 GitHub + Cloudflare Pages 自动部署的完整过程。
